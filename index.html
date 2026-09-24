@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RGT Private Server</title>
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --panel-bg: #1a1d24;
+            --text-main: #e0e6ed;
+            --accent: #00d2ff;
+            --accent-hover: #3a7bd5;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --warning: #f1c40f;
+            --border: #2d323e;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; }
+        
+        header { background: var(--panel-bg); padding: 15px 20px; text-align: center; border-bottom: 2px solid var(--accent); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .header-title { font-size: 1.5em; font-weight: bold; color: var(--accent); margin: 0; }
+        
+        .nav-links { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .nav-links button { background: none; border: none; color: var(--text-main); cursor: pointer; font-size: 1em; padding: 8px 12px; border-radius: 5px; transition: 0.3s; }
+        .nav-links button:hover, .nav-links button.active { background: var(--accent); color: #000; font-weight: bold; }
+
+        .lang-selector button { background: transparent; color: white; border: 1px solid var(--accent); padding: 5px 10px; cursor: pointer; border-radius: 5px; margin-left: 5px; }
+        .lang-selector button:hover, .lang-selector button.active { background: var(--accent); color: #000; font-weight: bold; }
+
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        .page { display: none; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2, h3 { color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0;}
+
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .status-badge { padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.9em; }
+        .status-online { background: rgba(46, 213, 115, 0.2); color: var(--success); border: 1px solid var(--success); }
+        .status-offline { background: rgba(255, 71, 87, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .stat-box { background: #222630; padding: 15px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
+        .stat-value { font-size: 1.5em; font-weight: bold; color: var(--accent); margin: 10px 0; }
+        
+        .progress-bg { background: #121419; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 10px; }
+        .progress-bar { height: 100%; background: var(--accent); transition: width 0.5s; }
+
+        .worlds-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+        .world-card { background: #222630; padding: 10px 15px; border-radius: 5px; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; min-width: 150px; flex: 1; }
+        .world-card:hover { border-color: var(--accent); }
+        .world-name { font-weight: bold; }
+        .cat-tag { font-size: 0.7em; padding: 2px 8px; border-radius: 12px; font-weight: bold; }
+        .tag-starts { background: rgba(0, 210, 255, 0.2); color: #00d2ff; }
+        .tag-bfg { background: rgba(255, 165, 2, 0.2); color: #f1c40f; }
+        .tag-shop { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
+        .tag-wotd { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; overflow-x: auto; display: block; white-space: nowrap; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background-color: #222630; color: var(--accent); }
+        @media (min-width: 768px) { table { display: table; } }
+        
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        input[type="text"] { flex: 1; min-width: 200px; padding: 10px; border: 1px solid var(--border); background: #121419; color: white; border-radius: 5px; }
+        button.btn { padding: 10px 20px; background: var(--accent); color: black; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button.btn:hover { background: var(--accent-hover); color: white; }
+
+        .item-result-box { display: none; background: #222630; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+        .item-result-box.active { display: block; }
+        #itemImage { max-width: 100px; margin: 15px auto; image-rendering: pixelated; }
+
+        .modal { display: flex; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
+        .modal-content { background-color: var(--panel-bg); padding: 30px; border-radius: 10px; max-width: 500px; text-align: center; border: 2px solid var(--danger); margin: 20px; }
+        .modal-content h2 { color: var(--danger); border: none; }
+
+        .wealth-col span { display: inline-block; margin-bottom: 3px; }
+    </style>
+</head>
+<body>
+
+    <div id="warningModal" class="modal">
+        <div class="modal-content">
+            <h2 data-i18n="warnTitle">⚠️ PERINGATAN / WARNING ⚠️</h2>
+            <p data-i18n="warnText">Sebelum bermain tolong hapus data Growtopia-nya dan install ulang APK RGT-nya. Jika ada item berharga atau aset yang hilang, jangan menyalahkan pemilik server.</p>
+            <button class="btn" style="background: var(--danger); color: white; margin-top: 15px;" onclick="document.getElementById('warningModal').style.display='none'" data-i18n="warnBtn">Saya Mengerti</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="header-title">RGT SERVER</div>
+        <div class="nav-links">
+            <button class="nav-btn active" onclick="switchPage('home')" id="nav-home" data-i18n="navHome">Home / Status</button>
+            <button class="nav-btn" onclick="switchPage('worlds')" id="nav-worlds" data-i18n="navWorlds">Worlds</button>
+            <button class="nav-btn" onclick="switchPage('leaderboard')" id="nav-leaderboard" data-i18n="navLB">Leaderboard</button>
+            <button class="nav-btn" onclick="switchPage('items')" id="nav-items" data-i18n="navItem">Item Search</button>
+            <button class="nav-btn" onclick="switchPage('store')" id="nav-store" data-i18n="navStore">Store & Rules</button>
+        </div>
+        <div class="lang-selector">
+            <button id="btn-lang-id" class="active" onclick="changeLang('id')">ID</button>
+            <button id="btn-lang-en" onclick="changeLang('en')">EN</button>
+            <button id="btn-lang-jp" onclick="changeLang('jp')">JP</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- PAGE: HOME -->
+        <div id="page-home" class="page active">
+            <div class="card">
+                <div class="dashboard-header">
+                    <div>
+                        <h2 style="border:none; padding:0; margin:0;" id="serverName">Loading...</h2>
+                        <span style="color: gray; font-size: 0.9em;" id="serverIP">---</span> | <span style="color: gray; font-size: 0.9em;" id="serverIdBadge">ID: ---</span>
+                    </div>
+                    <div id="statusContainer" class="status-badge status-offline">
+                        <span id="statusText" data-i18n="statusChecking">CHECKING...</span> <span id="playerCount"></span>
+                    </div>
+                </div>
+
+                <h3 data-i18n="hwTitle">Hardware Usage</h3>
+                <div class="grid-3">
+                    <div class="stat-box">
+                        <div data-i18n="hwCpu">CPU Usage</div>
+                        <div class="stat-value" id="cpuUsage">0.0%</div>
+                        <div class="progress-bg"><div class="progress-bar" id="cpuBar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="stat-box">
+                        <div data-i18n="hwRam">Memory Usage</div>
+                        <div class="stat-value" id="memoryUsage">0 MB</div>
+                        <div class="progress-bg"><div class="progress-bar" id="memBar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="stat-box">
+                        <div data-i18n="hwStorage">Storage Usage</div>
+                        <div class="stat-value" id="storageUsage">0 MB</div>
+                        <div class="progress-bg"><div class="progress-bar" id="storageBar" style="width: 0%"></div></div>
+                    </div>
+                </div>
+                <div style="text-align: right; margin-top: 10px; font-size: 0.8em; color: gray;">
+                    <span data-i18n="lastUpdate">Last Update:</span> <span id="lastUpdate">--:--:--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: WORLDS -->
+        <div id="page-worlds" class="page">
+            <div class="card">
+                <h2 data-i18n="wTitle">World Statistics & Directory</h2>
+                <div class="grid-3" style="margin-bottom: 20px;">
+                    <div class="stat-box"><span data-i18n="wTotal">Total Worlds</span><div class="stat-value" id="totalWorldsCount">0</div></div>
+                    <div class="stat-box"><span data-i18n="wActive">Active Worlds</span><div class="stat-value" style="color: var(--success)" id="activeWorldsCount">0</div></div>
+                    <div class="stat-box"><span data-i18n="wEmpty">Empty Worlds</span><div class="stat-value" style="color: gray" id="emptyWorldsCount">0</div></div>
+                </div>
+                <div class="grid-3" style="margin-bottom: 20px;">
+                    <div class="stat-box"><span data-i18n="wStarts">Starts Worlds</span><div class="stat-value" style="color: #00d2ff" id="startsWorlds">0</div></div>
+                    <div class="stat-box"><span data-i18n="wBfg">BFG Worlds</span><div class="stat-value" style="color: var(--warning)" id="bfgWorlds">0</div></div>
+                    <div class="stat-box"><span data-i18n="wShop">Shop Worlds</span><div class="stat-value" style="color: #2ed573" id="shopWorlds">0</div></div>
+                </div>
+                <h3 data-i18n="wActiveList">Active World List</h3>
+                <div class="worlds-container" id="worldsContainer">
+                    <p style="color: gray;" data-i18n="fetchingData">Fetching data...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: LEADERBOARD -->
+        <div id="page-leaderboard" class="page">
+            <div class="card">
+                <h3 data-i18n="lbEco">💎 Economy (Rich List)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="thRank">Rank</th>
+                            <th data-i18n="thName">Name</th>
+                            <th data-i18n="thWealth">Wealth (Gems & Coins)</th>
+                            <th data-i18n="thWL">World Locks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lbEconomy"><tr><td colspan="4" style="text-align:center;" data-i18n="loadingData">Loading data...</td></tr></tbody>
+                </table>
+            </div>
+            
+            <div class="grid-3" style="grid-template-columns: 1fr 1fr;">
+                <div class="card">
+                    <h3 data-i18n="lbPlayer">🏆 Top Players</h3>
+                    <table>
+                        <thead><tr><th data-i18n="thRank">Rank</th><th data-i18n="thName">Name</th><th data-i18n="thLevel">Level</th></tr></thead>
+                        <tbody id="lbPlayers"><tr><td colspan="3" style="text-align:center;" data-i18n="loadingData">Loading data...</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="card">
+                    <h3 data-i18n="lbWorld">🌍 Top Worlds</h3>
+                    <table>
+                        <thead><tr><th data-i18n="thRank">Rank</th><th data-i18n="thWorld">World</th><th data-i18n="thHonor">Honors</th></tr></thead>
+                        <tbody id="lbWorlds"><tr><td colspan="3" style="text-align:center;" data-i18n="loadingData">Loading data...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: ITEMS -->
+        <div id="page-items" class="page">
+            <div class="card">
+                <h2 data-i18n="iTitle">Item Database & Texture Fetcher</h2>
+                <div class="input-group">
+                    <input type="text" id="itemIdInput" data-i18n-placeholder="iPlaceholder" placeholder="Enter Item ID (e.g. 242)">
+                    <button class="btn" id="searchItemBtn" data-i18n="iSearchBtn">Fetch Item</button>
+                </div>
+                <div id="itemResult" class="item-result-box">
+                    <h3 style="border:none;" data-i18n="iRes">Result</h3>
+                    <div id="itemError" style="color: var(--danger); display: none;"></div>
+                    <img id="itemImage" src="" alt="Item Texture" style="display: none;">
+                    <br>
+                    <button class="btn" id="downloadItemBtn" style="display: none; margin-top:10px;" data-i18n="iDlBtn">Download Texture (.png)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: STORE & RULES -->
+        <div id="page-store" class="page">
+            <div class="card">
+                <h2 data-i18n="htpTitle">How To Play</h2>
+                <div id="htpContent" style="line-height: 1.6; background: #222630; padding: 15px; border-radius: 8px;">
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 data-i18n="storeTitle">Server Store & Price List</h2>
+                
+                <h3>💎 Roles</h3>
+                <table>
+                    <tr><th data-i18n="thName">Role Name</th><th data-i18n="thPrice">Price / Requirement</th></tr>
+                    <tr><td>VIP</td><td>50,000 Gems</td></tr>
+                    <tr><td>SVIP</td><td>150,000 Gems</td></tr>
+                    <tr><td>Moderator</td><td data-i18n="reqDiscord">Apply on Discord</td></tr>
+                    <tr><td>Admin</td><td data-i18n="reqNotSale">Not for Sale</td></tr>
+                    <tr><td>Creator</td><td data-i18n="reqContrib">Special Contribution</td></tr>
+                    <tr><td>God</td><td data-i18n="reqOwner">Owner Only</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLang = 'id';
+        const langData = {
+            id: {
+                warnTitle: "⚠️ PERINGATAN ⚠️",
+                warnText: "Sebelum bermain tolong hapus data Growtopia-nya dan install ulang APK RGT-nya. Jika ada item berharga atau aset yang hilang, jangan menyalahkan pemilik server.",
+                warnBtn: "Saya Mengerti",
+                navHome: "Beranda / Status", navWorlds: "Daftar Dunia", navLB: "Papan Peringkat", navItem: "Cari Item", navStore: "Toko & Aturan",
+                statusOnline: "ONLINE", statusOffline: "OFFLINE", statusChecking: "MEMERIKSA...", playersTxt: "pemain",
+                hwTitle: "Penggunaan Perangkat Keras", hwCpu: "CPU", hwRam: "Memori (RAM)", hwStorage: "Penyimpanan", lastUpdate: "Terakhir Diperbarui:",
+                wTitle: "Statistik & Direktori Dunia", wTotal: "Total Dunia", wActive: "Dunia Aktif", wEmpty: "Dunia Kosong",
+                wStarts: "Dunia Starts", wBfg: "Dunia BFG", wShop: "Dunia Toko", wActiveList: "Daftar Dunia Aktif",
+                fetchingData: "Mengambil data...", noWorldData: "Tidak ada data dunia dari API.",
+                lbPlayer: "🏆 Pemain Teratas", lbEco: "💎 Papan Ekonomi", lbWorld: "🌍 Dunia Teratas",
+                thRank: "Peringkat", thName: "Nama", thLevel: "Level", thWealth: "Kekayaan (Gems & Coins)", thWL: "World Locks (WL)", thWorld: "Dunia", thHonor: "Pemain",
+                loadingData: "Memuat data...", noData: "Data belum tersedia/kosong.",
+                iTitle: "Database Item & Pengambil Tekstur", iSearchBtn: "Ambil Item", iRes: "Hasil", iDlBtn: "Unduh Tekstur (.png)",
+                iPlaceholder: "Masukkan ID Item (Contoh: 242)", iError: "Gagal memuat item. Pastikan ID benar.", iAlert: "Masukkan Item ID",
+                htpTitle: "Cara Bermain", storeTitle: "Toko Server & Daftar Harga", thPrice: "Harga / Syarat",
+                reqDiscord: "Daftar di Discord", reqNotSale: "Tidak Dijual", reqContrib: "Kontribusi Khusus", reqOwner: "Hanya Pemilik",
+                htpContent: "1. Hapus data aplikasi Growtopia resmi dari HP Anda.<br>2. Unduh dan install APK RGT Client terbaru dari Discord kami.<br>3. Buka game, buat akun/GrowID baru.<br>4. Nikmati fitur premium dan Custom Items di RGT Server!"
+            },
+            en: {
+                warnTitle: "⚠️ WARNING ⚠️",
+                warnText: "Before playing, please clear your official Growtopia data and reinstall the RGT APK. If valuable items or assets are lost, do not blame the server owner.",
+                warnBtn: "I Understand",
+                navHome: "Home / Status", navWorlds: "Worlds Directory", navLB: "Leaderboards", navItem: "Item Search", navStore: "Store & Rules",
+                statusOnline: "ONLINE", statusOffline: "OFFLINE", statusChecking: "CHECKING...", playersTxt: "players",
+                hwTitle: "Hardware Usage", hwCpu: "CPU Usage", hwRam: "Memory Usage", hwStorage: "Storage Usage", lastUpdate: "Last Update:",
+                wTitle: "World Statistics & Directory", wTotal: "Total Worlds", wActive: "Active Worlds", wEmpty: "Empty Worlds",
+                wStarts: "Starts Worlds", wBfg: "BFG Worlds", wShop: "Shop Worlds", wActiveList: "Active World List",
+                fetchingData: "Fetching data...", noWorldData: "No world data available from API.",
+                lbPlayer: "🏆 Top Players", lbEco: "💎 Economy Board", lbWorld: "🌍 Top Worlds",
+                thRank: "Rank", thName: "Name", thLevel: "Level", thWealth: "Wealth (Gems & Coins)", thWL: "World Locks (WL)", thWorld: "World", thHonor: "Players",
+                loadingData: "Loading data...", noData: "Data not available/empty.",
+                iTitle: "Item Database & Texture Fetcher", iSearchBtn: "Fetch Item", iRes: "Result", iDlBtn: "Download Texture (.png)",
+                iPlaceholder: "Enter Item ID (e.g. 242)", iError: "Failed to load item. Ensure ID is correct.", iAlert: "Please enter an Item ID",
+                htpTitle: "How To Play", storeTitle: "Server Store & Price List", thPrice: "Price / Requirement",
+                reqDiscord: "Apply on Discord", reqNotSale: "Not for Sale", reqContrib: "Special Contribution", reqOwner: "Owner Only",
+                htpContent: "1. Clear the official Growtopia app data from your phone.<br>2. Download and install the latest RGT Client APK from our Discord.<br>3. Open the game, create a new GrowID.<br>4. Enjoy premium features and Custom Items on the RGT Server!"
+            },
+            jp: {
+                warnTitle: "⚠️ 警告 / WARNING ⚠️",
+                warnText: "プレイする前に、公式のGrowtopiaデータを消去し、RGT APKを再インストールしてください。",
+                warnBtn: "理解しました",
+                navHome: "ホーム / 状態", navWorlds: "ワールド", navLB: "リーダーボード", navItem: "アイテム検索", navStore: "ストアとルール",
+                statusOnline: "オンライン", statusOffline: "オフライン", statusChecking: "確認中...", playersTxt: "プレイヤー",
+                hwTitle: "ハードウェア使用状況", hwCpu: "CPU", hwRam: "メモリ", hwStorage: "ストレージ", lastUpdate: "最終更新:",
+                wTitle: "ワールド統計とディレクトリ", wTotal: "全ワールド", wActive: "アクティブ", wEmpty: "空のワールド",
+                wStarts: "開始", wBfg: "BFG", wShop: "ショップ", wActiveList: "アクティブなワールドリスト",
+                fetchingData: "データを取得中...", noWorldData: "APIからのデータがありません。",
+                lbPlayer: "🏆 トッププレイヤー", lbEco: "💎 経済ボード", lbWorld: "🌍 トップワールド",
+                thRank: "ランク", thName: "名前", thLevel: "レベル", thWealth: "富 (ジェムとコイン)", thWL: "ワールドロック (WL)", thWorld: "ワールド", thHonor: "プレイヤー",
+                loadingData: "データを読み込み中...", noData: "データがありません。",
+                iTitle: "アイテムデータベース", iSearchBtn: "アイテムを取得", iRes: "結果", iDlBtn: "テクスチャをダウンロード",
+                iPlaceholder: "アイテムIDを入力 (例: 242)", iError: "アイテムの読み込みに失敗しました。", iAlert: "アイテムIDを入力してください",
+                htpTitle: "遊び方", storeTitle: "サーバーストアと価格表", thPrice: "価格 / 要件",
+                reqDiscord: "Discordで応募", reqNotSale: "非売品", reqContrib: "特別な貢献", reqOwner: "オーナー専用",
+                htpContent: "1. 携帯から公式Growtopiaアプリのデータを消去します。<br>2. Discordから最新のRGTクライアントAPKをダウンロードしてインストールします。<br>3. ゲームを開き、新しいGrowIDを作成します。<br>4. RGTサーバーでプレミアム機能をお楽しみください！"
+            }
+        };
+
+        function t(key) { return langData[currentLang][key] || key; }
+
+        function changeLang(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-selector button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-lang-' + lang).classList.add('active');
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => { el.innerText = t(el.getAttribute('data-i18n')); });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
+            document.getElementById('htpContent').innerHTML = t('htpContent');
+            
+            updateDashboard();
+            fetchLeaderboards();
+        }
+
+        function switchPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            document.getElementById('nav-' + pageId).classList.add('active');
+        }
+
+        const SERVER_ID = '314';
+        const SERVER_PORT = '17414'; 
+        
+        const API_BASE = 'https://api.gtps.cloud/api/server/public/' + SERVER_ID;
+        const API_MAIN = API_BASE;
+        const API_STATUS = API_BASE + '/status'; 
+        
+        const API_WORLDS_BASE = 'https://api.gtps.cloud/g-api/' + SERVER_PORT + '/worlds';
+        const API_LB_BASE = 'https://api.gtps.cloud/g-api/' + SERVER_PORT + '/leaderboard';
+
+        async function fetchJSON(url) {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) return null;
+                return await res.json();
+            } catch (e) { 
+                return null; 
+            }
+        }
+
+        function getCategory(name) {
+            name = name.toUpperCase();
+            if (name.includes('WOTD')) return 'WOTD';
+            if (name.startsWith('START')) return 'STARTS';
+            if (name.includes('BFG')) return 'BFG';
+            if (name.includes('SHOP') || name.includes('BUY') || name.includes('SELL')) return 'SHOP';
+            return 'NORMAL';
+        }
+
+        function getTagClass(cat) {
+            if (cat === 'STARTS') return 'tag-starts';
+            if (cat === 'BFG') return 'tag-bfg';
+            if (cat === 'SHOP') return 'tag-shop';
+            if (cat === 'WOTD') return 'tag-wotd';
+            return '';
+        }
+
+        let cachedWorldsData = null;
+        let cachedLbData = null;
+
+        async function updateDashboard() {
+            const timeBypass = new Date().getTime();
+            // Menggunakan Corsproxy.io agar Vercel-friendly dan sangat stabil
+            const API_CUSTOM_WORLDS = 'https://corsproxy.io/?' + encodeURIComponent(API_WORLDS_BASE + '?t=' + timeBypass);
+
+            const [main, status, worldsData] = await Promise.all([
+                fetchJSON(API_MAIN), fetchJSON(API_STATUS), fetchJSON(API_CUSTOM_WORLDS)
+            ]);
+
+            if(worldsData) cachedWorldsData = worldsData;
+
+            let serverName = 'GTPS Server', serverIP = '5.39.13.16:17414';
+            if (main?.server_name) serverName = main.server_name;
+            else if (status?.server_name) serverName = status.server_name;
+            if (main?.ip) serverIP = main.ip;
+            if (main?.host) serverIP = main.host;
+
+            document.querySelectorAll('.header-title, #serverName').forEach(el => el.innerHTML = serverName);
+            document.getElementById('serverIdBadge').innerHTML = 'ID: ' + SERVER_ID;
+            document.getElementById('serverIP').innerHTML = serverIP;
+
+            let isOnline = false, playersOnline = 0;
+            if (main?.state) {
+                isOnline = main.state.server_status === 1;
+                playersOnline = main.state.players_online || 0;
+                const cpu = main.state.cpu_usage || 0, mem = main.state.memory_usage || 0, storage = main.state.storage_usage || 0;
+                
+                document.getElementById('cpuUsage').innerHTML = cpu.toFixed(1) + '%';
+                document.getElementById('cpuBar').style.width = Math.min(100, cpu) + '%';
+                document.getElementById('memoryUsage').innerHTML = mem + ' MB';
+                document.getElementById('memBar').style.width = Math.min(100, Math.round((mem/4096)*100)) + '%';
+                document.getElementById('storageUsage').innerHTML = Math.round(storage) + ' MB';
+                document.getElementById('storageBar').style.width = Math.min(100, Math.round((storage/2048)*100)) + '%';
+            }
+
+            if (status) {
+                if (status.server_status === 'online' || status.server_status === 1) isOnline = true;
+                if (status.players_online) playersOnline = status.players_online;
+            }
+
+            const statusDiv = document.getElementById('statusContainer');
+            if (isOnline) {
+                statusDiv.className = 'status-badge status-online';
+                document.getElementById('statusText').innerText = t('statusOnline');
+                document.getElementById('playerCount').innerText = '(' + playersOnline + ' ' + t('playersTxt') + ')';
+            } else {
+                statusDiv.className = 'status-badge status-offline';
+                document.getElementById('statusText').innerText = t('statusOffline');
+                document.getElementById('playerCount').innerText = '';
+            }
+
+            const sourceWorlds = (cachedWorldsData?.worlds) ? cachedWorldsData.worlds : [];
+            
+            if (sourceWorlds.length > 0) {
+                document.getElementById('totalWorldsCount').innerHTML = sourceWorlds.length;
+                let starts = 0, bfg = 0, shop = 0;
+                
+                sourceWorlds.forEach(w => {
+                    const cat = getCategory(w.name);
+                    if (cat === 'STARTS') starts++; else if (cat === 'BFG') bfg++; else if (cat === 'SHOP') shop++;
+                });
+                
+                document.getElementById('startsWorlds').innerHTML = starts;
+                document.getElementById('bfgWorlds').innerHTML = bfg;
+                document.getElementById('shopWorlds').innerHTML = shop;
+                
+                const active = sourceWorlds.filter(w => (w.players || 0) > 0).length;
+                document.getElementById('activeWorldsCount').innerHTML = active;
+                document.getElementById('emptyWorldsCount').innerHTML = sourceWorlds.length - active;
+                
+                let html = '';
+                const sortedWorlds = sourceWorlds.sort((a,b) => (b.players||0) - (a.players||0)).slice(0, 50);
+                
+                sortedWorlds.forEach(w => {
+                    const cat = getCategory(w.name);
+                    html += `
+                    <div class="world-card" onclick="alert('World: ${w.name}\\nPlayers: ${w.players||0}')">
+                        <div class="world-name">${w.name} <span style="color:gray; font-size:0.8em">(${w.players||0} 👤)</span></div>
+                        <span class="world-cat-tag cat-tag ${getTagClass(cat)}">${cat}</span>
+                    </div>`;
+                });
+                document.getElementById('worldsContainer').innerHTML = html;
+            } else if (!cachedWorldsData) {
+                document.getElementById('worldsContainer').innerHTML = `<p style="color: gray;">${t('noWorldData')}</p>`;
+                document.getElementById('totalWorldsCount').innerHTML = 0;
+                document.getElementById('activeWorldsCount').innerHTML = 0;
+                document.getElementById('emptyWorldsCount').innerHTML = 0;
+                document.getElementById('startsWorlds').innerHTML = 0;
+                document.getElementById('bfgWorlds').innerHTML = 0;
+                document.getElementById('shopWorlds').innerHTML = 0;
+            }
+            
+            document.getElementById('lastUpdate').innerHTML = new Date().toLocaleTimeString('en-US', {hour12: false});
+        }
+
+        async function fetchLeaderboards() {
+            const generateRows = (data, formatFunc, colSpan=3) => {
+                if (!data || data.length === 0) return `<tr><td colspan="${colSpan}" style="text-align:center; color:gray;">${t('noData')}</td></tr>`;
+                return data.slice(0,10).map((item, i) => `<tr><td>#${i+1}</td>${formatFunc(item)}</tr>`).join('');
+            };
+
+            const timeBypass = new Date().getTime();
+            const API_CUSTOM_LEADERBOARD = 'https://corsproxy.io/?' + encodeURIComponent(API_LB_BASE + '?t=' + timeBypass);
+
+            const lbData = await fetchJSON(API_CUSTOM_LEADERBOARD);
+
+            if (lbData) cachedLbData = lbData;
+
+            if (cachedLbData) {
+                document.getElementById('lbPlayers').innerHTML = generateRows(cachedLbData.players, (p) => `<td>${p.name}</td><td>${p.level}</td>`);
+                
+                document.getElementById('lbEconomy').innerHTML = generateRows(cachedLbData.economy, (e) => `
+                    <td>${e.name}</td>
+                    <td class="wealth-col">
+                        <span style="color:#00d2ff">💎 ${e.gems.toLocaleString()} Gems</span><br>
+                        <span style="color:var(--warning)">🪙 ${e.coins.toLocaleString()} Coins</span>
+                    </td>
+                    <td class="wealth-col">
+                        <span style="color:#bdc3c7">🎒 Inv: ${e.wl_inv.toLocaleString()}</span><br>
+                        <span style="color:#95a5a6">🏦 Bank: ${e.wl_bank.toLocaleString()}</span>
+                    </td>
+                `, 4);
+                
+                document.getElementById('lbWorlds').innerHTML = generateRows(cachedLbData.worlds, (w) => `<td>${w.name}</td><td><span style="color:#ffa502">👤 ${w.honor} ${t('thHonor')}</span></td>`);
+            } else if (!cachedLbData) {
+                document.getElementById('lbPlayers').innerHTML = `<tr><td colspan="3" style="text-align:center; color:gray;">${t('noData')}</td></tr>`;
+                document.getElementById('lbEconomy').innerHTML = `<tr><td colspan="4" style="text-align:center; color:gray;">${t('noData')}</td></tr>`;
+                document.getElementById('lbWorlds').innerHTML = `<tr><td colspan="3" style="text-align:center; color:gray;">${t('noData')}</td></tr>`;
+            }
+        }
+
+        document.getElementById('searchItemBtn').addEventListener('click', async () => {
+            const itemId = document.getElementById('itemIdInput').value.trim();
+            if (!itemId) { alert(t('iAlert')); return; }
+            
+            const itemResult = document.getElementById('itemResult');
+            const itemImage = document.getElementById('itemImage');
+            const downloadBtn = document.getElementById('downloadItemBtn');
+            const itemError = document.getElementById('itemError');
+            
+            itemError.style.display = 'none';
+            itemImage.style.display = 'none';
+            downloadBtn.style.display = 'none';
+            itemResult.classList.add('active');
+            
+            const imgUrl = `https://api.gtps.cloud/api/item/texture/${SERVER_ID}/${itemId}`;
+            
+            try {
+                const resp = await fetch(imgUrl);
+                if (!resp.ok) throw new Error('Not found');
+                const blob = await resp.blob();
+                const objectURL = URL.createObjectURL(blob);
+                itemImage.src = objectURL;
+                itemImage.style.display = 'block';
+                downloadBtn.style.display = 'inline-block';
+                
+                downloadBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = objectURL;
+                    a.download = `item_${itemId}_RGT.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+            } catch (e) {
+                itemError.style.display = 'block';
+                itemError.textContent = t('iError');
+            }
+        });
+
+        changeLang('id'); 
+        setInterval(updateDashboard, 10000); 
+        setInterval(fetchLeaderboards, 30000); 
+    </script>
+</body>
+</html>
