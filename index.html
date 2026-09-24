@@ -337,6 +337,9 @@
         const API_WORLDS_BASE = 'https://api.gtps.cloud/g-api/' + SERVER_PORT + '/worlds';
         const API_LB_BASE = 'https://api.gtps.cloud/g-api/' + SERVER_PORT + '/leaderboard';
 
+        // Menggunakan CodeTabs Proxy (Gratis, Vercel-friendly, tanpa API Key)
+        const getProxyUrl = (targetUrl) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(targetUrl);
+
         async function fetchJSON(url) {
             try {
                 const res = await fetch(url);
@@ -369,8 +372,7 @@
 
         async function updateDashboard() {
             const timeBypass = new Date().getTime();
-            // Menggunakan Corsproxy.io agar Vercel-friendly dan sangat stabil
-            const API_CUSTOM_WORLDS = 'https://corsproxy.io/?' + encodeURIComponent(API_WORLDS_BASE + '?t=' + timeBypass);
+            const API_CUSTOM_WORLDS = getProxyUrl(API_WORLDS_BASE + '?t=' + timeBypass);
 
             const [main, status, worldsData] = await Promise.all([
                 fetchJSON(API_MAIN), fetchJSON(API_STATUS), fetchJSON(API_CUSTOM_WORLDS)
@@ -469,7 +471,7 @@
             };
 
             const timeBypass = new Date().getTime();
-            const API_CUSTOM_LEADERBOARD = 'https://corsproxy.io/?' + encodeURIComponent(API_LB_BASE + '?t=' + timeBypass);
+            const API_CUSTOM_LEADERBOARD = getProxyUrl(API_LB_BASE + '?t=' + timeBypass);
 
             const lbData = await fetchJSON(API_CUSTOM_LEADERBOARD);
 
