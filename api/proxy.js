@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid endpoint specified' });
   }
 
-  const targetUrl = `https://api.gtps.cloud/g-api/17414/${endpoint}`;
+  const targetUrl = `https://api.gtps.cloud/g-api/18575/${endpoint}`;
 
   try {
     const response = await fetch(targetUrl);
