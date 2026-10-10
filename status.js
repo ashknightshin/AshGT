@@ -30,6 +30,7 @@ module.exports = async (req, res) => {
       playersOnline: s.players_online ?? 0,
       uptimeSeconds: running ? Math.max(0, now - (s.server_status_changed || now)) : 0,
       activeWorlds: s.active_worlds ?? 0,
+      dedicatedIp: (pub.login_page_info || {}).dedicated_ip ?? null,
       system: {
         memUsed: s.memory_usage ?? 0, memMax: t.max_memory_usage || 1,
         cpu: s.cpu_usage ?? 0, cpuMax: t.max_cpu_usage || 1,
