@@ -88,14 +88,28 @@ function render(){const qv=($("#q")||{}).value||"";
  ${c("🍎","iOS Devices","Connect using Surge 5 profile",cp("Copy Surge host",CFG.surgeHost)+L(CFG.surge,"w","Get Surge 5")+L(CFG.guide,"","Setup guide"))}
  ${c("🪟","Windows","One-click patch or manual host",L(CFG.patch,"w","Download patch")+cp("Copy hosts entries",hostsText())+cp("Copy IP",ipOf())+L(CFG.guide,"","Setup guide"))}
  ${c("🍏","macOS","Follow the official setup guide",L(CFG.guide,"w","Setup guide"))}</div>`;
- $("#src").textContent=!live?"Cannot reach the server API. Retrying every "+CFG.refreshMs/1000+" seconds...":D.partial?"Waiting for the server script (web_stats.lua) to send the remaining stats.":"";
+ $("#src").textContent=!live?"Cannot reach GTPS Cloud or this site's /api/status. Retrying every "+CFG.refreshMs/1000+" seconds...":!D.exOk?"Live status comes straight from GTPS Cloud. The website API (/api/status) is not answering, so event, multipliers, leaderboard and similar stats are missing.":D.partial?"Waiting for the server script (web_stats.lua) to send the remaining stats.":"";
  route()}
 function ach(){const q=($("#q")?.value||"").toLowerCase();$("#ach").innerHTML=[...(D.achievements||[])].sort((a,b)=>b.unlocked-a.unlocked).filter(p=>p.name.toLowerCase().includes(q)).map((p,i)=>{const pc=Math.min(100,Math.round(p.unlocked/(D.achievementTotal||CFG.achTotal)*100));return`<div class="row"><b class="gold">#${i+1}</b><b style="flex:1">${esc(p.name)}</b><span class="${p.online?"green":""}">${p.online?"ONLINE":"OFFLINE"}</span><div style="flex:1.4"><small>${p.unlocked} / ${(D.achievementTotal||CFG.achTotal)} unlocked</small><span style="float:right">${pc}%</span><div class="bar"><i style="width:${pc}%"></i></div></div></div>`}).join("")||'<p class="sub">No champions found.</p>'}
 function route(){const p=(location.hash||"#home").slice(1),ok=PAGES.some(x=>x[0]===p)?p:"home";document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===ok));document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.p===ok))}
 addEventListener("hashchange",route);
 document.addEventListener("click",e=>{const b=e.target.closest("[data-copy]");if(b){navigator.clipboard.writeText(b.dataset.copy);const o=b.textContent;b.textContent="✓ Copied";setTimeout(()=>b.textContent=o,1200)}});
 setInterval(()=>{const u=$("#up");if(u)u.textContent=up()},1000);
-async function load(){try{const r=await fetch(CFG.api);if(!r.ok)throw 0;D=await r.json();if(D.site)Object.assign(CFG,D.site);live=true;T0.t=Date.now()}catch{live=false}render()}
+// Live status is read straight from the public GTPS Cloud API (works even if the website API is down);
+// the extra stats (event, multipliers, leaderboard...) come from /api/status and fill in on top.
+const fromPub=p=>{const s=p.state||{},t=p.tier_info||{},n=Math.floor(Date.now()/1000),run=s.server_status===1;
+ return{name:p.name,serverId:p.id,running:run,playersOnline:s.players_online,activeWorlds:s.active_worlds,uptimeSeconds:run?Math.max(0,n-(s.server_status_changed||n)):0,
+ dedicatedIp:(p.login_page_info||{}).dedicated_ip,system:{memUsed:s.memory_usage??0,memMax:t.max_memory_usage||1,cpu:s.cpu_usage??0,cpuMax:t.max_cpu_usage||1,storageUsed:s.storage_usage??0,storageMax:t.max_storage_usage||1}}};
+const mg=(a,b)=>{for(const k in b)if(b[k]!=null)a[k]=b[k];return a};
+const getJ=async u=>{try{const r=await fetch(u);return r.ok?await r.json():null}catch{return null}};
+async function load(){
+ const[p,x]=await Promise.all([getJ("https://api.gtps.cloud/api/server/public/"+CFG.serverId),getJ(CFG.api)]);
+ const pub=p&&p.state?p:null,ex=x&&!x.error?x:null;
+ if(!pub&&!ex){live=false;render();return}
+ D=mg(mg(mg({},EMPTY),pub?fromPub(pub):{}),ex||{});
+ D.exOk=!!ex;D.partial=!ex||!!ex.partial;
+ if(D.site)Object.assign(CFG,D.site);
+ live=true;T0.t=Date.now();render()}
 // Search Item page: built once so a refresh never clears the result
 (()=>{$("#search").innerHTML=`<h2>Search Item</h2><p class="sub">Find an item image by its ID.</p><div style="display:flex;gap:12px;flex-wrap:wrap"><input type="search" id="iid" placeholder="Item ID (e.g. 2, 18, 242)" inputmode="numeric" style="flex:1;min-width:200px;margin:0"><button class="btn w" id="ibtn" style="width:auto;margin:0;padding:15px 30px">Search</button></div><div id="ires" style="margin-top:22px"></div>`;
  const go=()=>{const id=($("#iid").value||"").trim();if(!/^\d+$/.test(id)){$("#ires").innerHTML='<p class="sub" style="margin:0">Enter a numeric item ID.</p>';return}
