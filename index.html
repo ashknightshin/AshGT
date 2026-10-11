@@ -35,14 +35,14 @@ input[type=search]{width:100%;padding:18px 22px;border-radius:22px;border:1px so
 <nav id="nav"></nav>
 <main>
 <section id="home"></section><section id="dashboard"></section><section id="players"></section>
-<section id="achievements"></section><section id="community"></section><section id="download"></section>
+<section id="achievements"></section><section id="community"></section><section id="download"></section><section id="search"></section>
 <p class="tag" id="src"></p>
 </main>
 <script>
 // ===== EDIT ME =====
 const CFG={name:"ASHGTPS",guide:"https://dash.gtps.cloud/how-to-play/1475",
  apk:"https://dash.gtps.cloud/how-to-play/1475",powertunnelReleases:"https://github.com/krlvm/PowerTunnel-Android/releases",achTotal:100,discord:"https://discord.gg/6z6kqqbCsw",whatsapp:"https://chat.whatsapp.com/KmChNu8hpBVDndplmjmHKA?s=cl&p=a&mlu=4&ilr=4&iam=0",tiktok:"",
- hostUrl:"your.host.url",surgeHost:"your.surge.host",hostsIp:"5.39.13.18",
+ serverId:"1475",hostUrl:"https://dash.gtps.cloud/android/1475",surgeHost:"https://dash.gtps.cloud/ios/1475",hostsIp:"5.39.13.18",
  surge:"#",patch:"#",api:"/api/status",refreshMs:15000};
 // Empty state shown only until the first answer from the server arrives
 const EMPTY={running:null,playersOnline:null,uptimeSeconds:0,event:null,topWorld:null,gemMultiplier:null,xpMultiplier:null,
@@ -51,7 +51,7 @@ const EMPTY={running:null,playersOnline:null,uptimeSeconds:0,event:null,topWorld
 const $=s=>document.querySelector(s),esc=s=>s==null?"—":String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("en-US"),T0={t:Date.now()};
 let D=EMPTY,live=false;
-const PAGES=[["home","Home"],["dashboard","Dashboard"],["players","Players"],["achievements","Achievements"],["community","Community"],["download","Download"]];
+const PAGES=[["home","Home"],["dashboard","Dashboard"],["players","Players"],["achievements","Achievements"],["search","Search Item"],["community","Community"],["download","Download"]];
 $("#nav").innerHTML=PAGES.map(([id,l])=>`<a href="#${id}" data-p="${id}">${l}</a>`).join("");
 const stat=(l,v,c="")=>`<div class="card stat"><small>${l}</small><b ${c}>${v}</b></div>`;
 const up=()=>{let s=Math.floor(D.uptimeSeconds+(Date.now()-T0.t)/1000);return`${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m ${s%60}s`};
@@ -59,6 +59,10 @@ const mx=v=>v==null?"—":v+"x",ls=(a,f)=>a&&a.length?a.map(f).join(""):'<p clas
 const bar2=(l,v,u,p)=>`<div class="card stat"><small>${l}</small><b>${v}</b><div style="text-align:left"><small>${u}</small><span style="float:right;color:var(--acc);font-size:12px">${p}%</span><div class="bar"><i style="width:${Math.min(100,p)}%;background:var(--acc);box-shadow:none"></i></div></div></div>`;
 const sys=s=>`<div class="grid" style="margin-top:16px">${bar2("Memory usage",fmt(s.memUsed)+" MB","usage",Math.round(s.memUsed/s.memMax*100))}${bar2("CPU load",s.cpu.toFixed(1)+"%","processing",Math.round(s.cpu/s.cpuMax*100))}${bar2("Storage usage",(s.storageUsed/1024).toFixed(2)+" GB","disk space",Math.round(s.storageUsed/s.storageMax*100))}</div>`;
 const lock=p=>[["BBGL",p.bbgl],["BGL",p.bgl],["DL",p.dl],["WL",p.wl]].filter(x=>x[1]).map(x=>x[1]+" "+x[0]).join(" ")||"0 WL";
+const ipOf=()=>D.dedicatedIp||CFG.hostsIp,hostsText=()=>["growtopia1.com","growtopia2.com","www.growtopia1.com","www.growtopia2.com"].map(h=>ipOf()+" "+h).join("\n");
+const catOf=n=>{n=n.toUpperCase();return n.startsWith("START")?"STARTS":n.includes("BFG")?"BFG":/SHOP|BUY|STORE/.test(n)?"SHOP":"OTHER"};
+const worldsHtml=()=>{const w=D.worlds;if(!w)return"";const n={STARTS:0,BFG:0,SHOP:0,OTHER:0};w.forEach(x=>n[catOf(x.name)]++);
+ return`<h2 style="margin-top:44px">Worlds Online</h2><p class="sub">${w.length} active · Starts ${n.STARTS} · BFG ${n.BFG} · Shop ${n.SHOP}</p><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${w.length?w.map(x=>`<div class="card" style="padding:14px;text-align:center"><b>${esc(x.name)}</b><br><small class="lbl">${x.players} players</small></div>`).join(""):'<p class="sub" style="margin:0">No active worlds.</p>'}</div>`};
 function render(){const qv=($("#q")||{}).value||"";
  $("#home").innerHTML=`<div class="hero"><h1>${esc(D.name||CFG.name)}</h1><span class="run"><i class="dot ${D.running?"":D.running===null?"wait":"off"}"></i>${D.running?"SERVER RUNNING":D.running===null?"CONNECTING...":"SERVER OFFLINE"}</span></div>
  <div class="grid">${stat("Players online",fmt(D.playersOnline))}<div class="card stat"><small>Server uptime</small><b id="up">${up()}</b></div>
@@ -68,7 +72,7 @@ function render(){const qv=($("#q")||{}).value||"";
  $("#dashboard").innerHTML=`<h2>Server Economy</h2><p class="sub">Real-time data and economic turnover statistics.</p>
  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))"><div class="card"><span class="lbl">Total registered accounts</span><br><b style="font-size:32px">${fmt(D.registeredAccounts)}</b></div>
  <div class="card"><span class="lbl">World activity hub</span><br><b style="font-size:32px;color:var(--acc)">${D.worldHub?esc(D.worldHub.name)+" ("+D.worldHub.players+" Players)":fmt(D.activeWorlds)+" active"}</b></div></div>
- ${D.system?sys(D.system):""}
+ ${D.system?sys(D.system):""}${worldsHtml()}
  <h2 style="margin-top:44px">Leaderboard</h2><p class="sub">Ranking of the most influential players.</p>
  <div class="card"><span class="lbl">Top 3 richest players</span>${ls((D.richest||[]).slice(0,3),(p,i)=>`<div class="row"><span><b class="gold">#${i+1}</b>&nbsp;&nbsp;<b>${esc(p.name)}</b></span><span class="green">${lock(p)}</span></div>`)}</div>`;
  $("#players").innerHTML=`<h2>Players</h2><p class="sub">Who is around right now.</p><div class="card">${ls(D.players,p=>`<div class="row"><b>${esc(p.name)}</b><span>Lv ${p.level}</span><span class="${p.online?"green":""}">${p.online?"ONLINE":"OFFLINE"}</span></div>`)}</div>`;
@@ -82,7 +86,7 @@ function render(){const qv=($("#q")||{}).value||"";
  $("#download").innerHTML=`<div class="hero"><h2 style="border:0;padding:0;font-size:40px">Ready to <span style="color:var(--acc)">play?</span></h2><p class="sub" style="margin:8px 0">Select your device, or open the full step-by-step guide.</p><div style="max-width:360px;margin:16px auto 0">${L(CFG.guide,"w","Open How To Play guide")}</div></div><div class="grid">
  ${c("🤖","Android","Growtopia v5.59+ needs the custom APK, then connect with PowerTunnel.",L(CFG.apk,"w","Download custom APK")+cp("Copy host URL",CFG.hostUrl)+L(CFG.powertunnelReleases,"","Get PowerTunnel"))}
  ${c("🍎","iOS Devices","Connect using Surge 5 profile",cp("Copy Surge host",CFG.surgeHost)+L(CFG.surge,"w","Get Surge 5")+L(CFG.guide,"","Setup guide"))}
- ${c("🪟","Windows","One-click patch or manual host",L(CFG.patch,"w","Download patch")+cp("Copy hosts IP",D.dedicatedIp||CFG.hostsIp)+L(CFG.guide,"","Setup guide"))}
+ ${c("🪟","Windows","One-click patch or manual host",L(CFG.patch,"w","Download patch")+cp("Copy hosts entries",hostsText())+cp("Copy IP",ipOf())+L(CFG.guide,"","Setup guide"))}
  ${c("🍏","macOS","Follow the official setup guide",L(CFG.guide,"w","Setup guide"))}</div>`;
  $("#src").textContent=!live?"Cannot reach the server API. Retrying every "+CFG.refreshMs/1000+" seconds...":D.partial?"Waiting for the server script (web_stats.lua) to send the remaining stats.":"";
  route()}
@@ -92,5 +96,11 @@ addEventListener("hashchange",route);
 document.addEventListener("click",e=>{const b=e.target.closest("[data-copy]");if(b){navigator.clipboard.writeText(b.dataset.copy);const o=b.textContent;b.textContent="✓ Copied";setTimeout(()=>b.textContent=o,1200)}});
 setInterval(()=>{const u=$("#up");if(u)u.textContent=up()},1000);
 async function load(){try{const r=await fetch(CFG.api);if(!r.ok)throw 0;D=await r.json();if(D.site)Object.assign(CFG,D.site);live=true;T0.t=Date.now()}catch{live=false}render()}
+// Search Item page: built once so a refresh never clears the result
+(()=>{$("#search").innerHTML=`<h2>Search Item</h2><p class="sub">Find an item image by its ID.</p><div style="display:flex;gap:12px;flex-wrap:wrap"><input type="search" id="iid" placeholder="Item ID (e.g. 2, 18, 242)" inputmode="numeric" style="flex:1;min-width:200px;margin:0"><button class="btn w" id="ibtn" style="width:auto;margin:0;padding:15px 30px">Search</button></div><div id="ires" style="margin-top:22px"></div>`;
+ const go=()=>{const id=($("#iid").value||"").trim();if(!/^\d+$/.test(id)){$("#ires").innerHTML='<p class="sub" style="margin:0">Enter a numeric item ID.</p>';return}
+  const u=`https://api.gtps.cloud/api/item/texture/${D.serverId||CFG.serverId}/${id}`;
+  $("#ires").innerHTML=`<div class="card" style="display:inline-block;max-width:100%"><img src="${u}" alt="Item ${id}" style="max-width:100%;display:block;border-radius:8px" onerror="this.replaceWith(Object.assign(document.createElement('p'),{textContent:'No image found for item ${id}.'}))"><a class="btn" href="${u}" target="_blank" rel="noopener">Open image</a></div>`};
+ $("#ibtn").onclick=go;$("#iid").onkeydown=e=>{if(e.key==="Enter")go()}})();
 load();setInterval(load,CFG.refreshMs);
 </script></body></html>
