@@ -36,6 +36,7 @@ module.exports = async (req, res) => {
         cpu: s.cpu_usage ?? 0, cpuMax: t.max_cpu_usage || 1,
         storageUsed: s.storage_usage ?? 0, storageMax: t.max_storage_usage || 1,
       },
+      site: snap.site ?? null, // links/hosts edited in web_stats.lua (kept even if stats are stale)
       event: x.event ?? null, roleQuest: x.roleQuest ?? null, topWorld: x.topWorld ?? null,
       gemMultiplier: x.gemMultiplier ?? null, xpMultiplier: x.xpMultiplier ?? null,
       registryItems: x.registryItems ?? null, registeredAccounts: x.registeredAccounts ?? null,
