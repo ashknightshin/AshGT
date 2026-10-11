@@ -14,7 +14,7 @@ section{display:none}section.on{display:block}
 .hero h1{font-size:clamp(38px,9vw,76px);letter-spacing:.22em;color:#cfcfd8}
 .run{display:inline-flex;gap:8px;align-items:center;color:var(--acc);letter-spacing:.2em;font-weight:600;font-size:13px}
 .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
-.dot.off{background:#f44;box-shadow:0 0 8px #f44}
+.dot.off{background:#f44;box-shadow:0 0 8px #f44}.dot.wait{background:#888;box-shadow:none}
 .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px}
 .stat{text-align:center;min-height:130px;display:flex;flex-direction:column;justify-content:center;gap:10px}
@@ -44,16 +44,13 @@ const CFG={name:"ASHGTPS",guide:"https://dash.gtps.cloud/how-to-play/1475",
  apk:"https://dash.gtps.cloud/how-to-play/1475",powertunnelReleases:"https://github.com/krlvm/PowerTunnel-Android/releases",achTotal:100,discord:"https://discord.gg/6z6kqqbCsw",whatsapp:"https://chat.whatsapp.com/KmChNu8hpBVDndplmjmHKA?s=cl&p=a&mlu=4&ilr=4&iam=0",tiktok:"",
  hostUrl:"your.host.url",surgeHost:"your.surge.host",hostsIp:"5.39.13.18",
  surge:"#",patch:"#",api:"/api/status",refreshMs:15000};
-// Shown when the API is not reachable yet (demo data)
-const MOCK={running:true,playersOnline:1,uptimeSeconds:177,event:"The Kit Pass Event has started!",topWorld:"VIVJ",
- gemMultiplier:10,xpMultiplier:4,registryItems:16124,roleQuest:"Star Captain's Day",registeredAccounts:80,activeWorlds:2,
- worldHub:{name:"VIVJ",players:1},richest:[{name:"Binn",bbgl:20,bgl:70,dl:102,wl:11},{name:"hixss",bbgl:5,bgl:1,dl:99,wl:97},{name:"ABC",bbgl:2,bgl:6,dl:13,wl:40}],
- players:[{name:"Binn",level:125,online:true},{name:"Lip",level:98,online:true},{name:"ABC",level:77,online:false}],
- achievements:[{name:"Vynell",online:true,unlocked:67},{name:"Youu",online:true,unlocked:63},{name:"mrclouds",online:true,unlocked:35},{name:"ABC",online:false,unlocked:35}]};
+// Empty state shown only until the first answer from the server arrives
+const EMPTY={running:null,playersOnline:null,uptimeSeconds:0,event:null,topWorld:null,gemMultiplier:null,xpMultiplier:null,
+ registryItems:null,roleQuest:null,registeredAccounts:null,activeWorlds:null,worldHub:null,richest:[],players:[],achievements:[]};
 // ===================
 const $=s=>document.querySelector(s),esc=s=>s==null?"—":String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("en-US"),T0={t:Date.now()};
-let D=MOCK,live=false;
+let D=EMPTY,live=false;
 const PAGES=[["home","Home"],["dashboard","Dashboard"],["players","Players"],["achievements","Achievements"],["community","Community"],["download","Download"]];
 $("#nav").innerHTML=PAGES.map(([id,l])=>`<a href="#${id}" data-p="${id}">${l}</a>`).join("");
 const stat=(l,v,c="")=>`<div class="card stat"><small>${l}</small><b ${c}>${v}</b></div>`;
@@ -62,8 +59,8 @@ const mx=v=>v==null?"—":v+"x",ls=(a,f)=>a&&a.length?a.map(f).join(""):'<p clas
 const bar2=(l,v,u,p)=>`<div class="card stat"><small>${l}</small><b>${v}</b><div style="text-align:left"><small>${u}</small><span style="float:right;color:var(--acc);font-size:12px">${p}%</span><div class="bar"><i style="width:${Math.min(100,p)}%;background:var(--acc);box-shadow:none"></i></div></div></div>`;
 const sys=s=>`<div class="grid" style="margin-top:16px">${bar2("Memory usage",fmt(s.memUsed)+" MB","usage",Math.round(s.memUsed/s.memMax*100))}${bar2("CPU load",s.cpu.toFixed(1)+"%","processing",Math.round(s.cpu/s.cpuMax*100))}${bar2("Storage usage",(s.storageUsed/1024).toFixed(2)+" GB","disk space",Math.round(s.storageUsed/s.storageMax*100))}</div>`;
 const lock=p=>[["BBGL",p.bbgl],["BGL",p.bgl],["DL",p.dl],["WL",p.wl]].filter(x=>x[1]).map(x=>x[1]+" "+x[0]).join(" ")||"0 WL";
-function render(){
- $("#home").innerHTML=`<div class="hero"><h1>${esc(D.name||CFG.name)}</h1><span class="run"><i class="dot ${D.running?"":"off"}"></i>${D.running?"SERVER RUNNING":"SERVER OFFLINE"}</span></div>
+function render(){const qv=($("#q")||{}).value||"";
+ $("#home").innerHTML=`<div class="hero"><h1>${esc(D.name||CFG.name)}</h1><span class="run"><i class="dot ${D.running?"":D.running===null?"wait":"off"}"></i>${D.running?"SERVER RUNNING":D.running===null?"CONNECTING...":"SERVER OFFLINE"}</span></div>
  <div class="grid">${stat("Players online",fmt(D.playersOnline))}<div class="card stat"><small>Server uptime</small><b id="up">${up()}</b></div>
  ${stat("Active event",esc(D.event),'style="color:#ff2d95;font-size:20px"')}${stat("Top world",esc(D.topWorld),'style="color:var(--acc)"')}
  ${stat("Gem multiplier",mx(D.gemMultiplier),'style="color:#ffe600"')}${stat("XP multiplier",mx(D.xpMultiplier),'style="color:#2bff2b"')}
@@ -77,7 +74,7 @@ function render(){
  $("#players").innerHTML=`<h2>Players</h2><p class="sub">Who is around right now.</p><div class="card">${ls(D.players,p=>`<div class="row"><b>${esc(p.name)}</b><span>Lv ${p.level}</span><span class="${p.online?"green":""}">${p.online?"ONLINE":"OFFLINE"}</span></div>`)}</div>`;
  $("#achievements").innerHTML=`<h2>Hall of Fame</h2><p class="sub">Tracking player accomplishments and milestones.</p><input type="search" id="q" placeholder="Search champion name...">
  <div class="card" id="ach"></div>`;
- $("#q").oninput=ach;ach();
+ $("#q").value=qv;$("#q").oninput=ach;ach();
  const c=(ic,t,d,b)=>`<div class="card cta"><div class="ic">${ic}</div><h3>${t}</h3><p>${d}</p>${b}</div>`,L=(u,k,t)=>`<a class="btn ${k}" href="${u}" target="_blank" rel="noopener" ${u&&u!=="#"?"":'aria-disabled="true"'}>${t}</a>`;
  $("#community").innerHTML=`<div class="hero"><h2 style="border:0;padding:0;font-size:40px">Community <span style="color:var(--acc)">Hub</span></h2><p class="sub" style="margin:8px 0">Join our official channels.</p></div><div class="grid">
  ${c("💬","Discord","Patch notes, giveaways and staff chat.",L(CFG.discord,"d","Join server"))}${c("📱","WhatsApp","Fast trading and real-time discussion.",L(CFG.whatsapp,"g","Join group"))}${c("🎵","TikTok","Sneak peeks, tutorials and clips.",L(CFG.tiktok,"","Coming soon"))}</div>`;
@@ -87,13 +84,13 @@ function render(){
  ${c("🍎","iOS Devices","Connect using Surge 5 profile",cp("Copy Surge host",CFG.surgeHost)+L(CFG.surge,"w","Get Surge 5")+L(CFG.guide,"","Setup guide"))}
  ${c("🪟","Windows","One-click patch or manual host",L(CFG.patch,"w","Download patch")+cp("Copy hosts IP",D.dedicatedIp||CFG.hostsIp)+L(CFG.guide,"","Setup guide"))}
  ${c("🍏","macOS","Follow the official setup guide",L(CFG.guide,"w","Setup guide"))}</div>`;
- $("#src").textContent=!live?"Demo data: connect the API (see README).":D.partial?"— means that stat needs the server script endpoint (see README).":"";
+ $("#src").textContent=!live?"Cannot reach the server API. Retrying every "+CFG.refreshMs/1000+" seconds...":D.partial?"Waiting for the server script (web_stats.lua) to send the remaining stats.":"";
  route()}
 function ach(){const q=($("#q")?.value||"").toLowerCase();$("#ach").innerHTML=[...(D.achievements||[])].sort((a,b)=>b.unlocked-a.unlocked).filter(p=>p.name.toLowerCase().includes(q)).map((p,i)=>{const pc=Math.min(100,Math.round(p.unlocked/(D.achievementTotal||CFG.achTotal)*100));return`<div class="row"><b class="gold">#${i+1}</b><b style="flex:1">${esc(p.name)}</b><span class="${p.online?"green":""}">${p.online?"ONLINE":"OFFLINE"}</span><div style="flex:1.4"><small>${p.unlocked} / ${(D.achievementTotal||CFG.achTotal)} unlocked</small><span style="float:right">${pc}%</span><div class="bar"><i style="width:${pc}%"></i></div></div></div>`}).join("")||'<p class="sub">No champions found.</p>'}
 function route(){const p=(location.hash||"#home").slice(1),ok=PAGES.some(x=>x[0]===p)?p:"home";document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===ok));document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.p===ok))}
 addEventListener("hashchange",route);
 document.addEventListener("click",e=>{const b=e.target.closest("[data-copy]");if(b){navigator.clipboard.writeText(b.dataset.copy);const o=b.textContent;b.textContent="✓ Copied";setTimeout(()=>b.textContent=o,1200)}});
 setInterval(()=>{const u=$("#up");if(u)u.textContent=up()},1000);
-async function load(){try{const r=await fetch(CFG.api);if(!r.ok)throw 0;D=await r.json();live=true;T0.t=Date.now()}catch{D=MOCK;live=false}render()}
+async function load(){try{const r=await fetch(CFG.api);if(!r.ok)throw 0;D=await r.json();if(D.site)Object.assign(CFG,D.site);live=true;T0.t=Date.now()}catch{live=false}render()}
 load();setInterval(load,CFG.refreshMs);
 </script></body></html>
