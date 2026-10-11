@@ -41,6 +41,7 @@ module.exports = async (req, res) => {
       gemMultiplier: x.gemMultiplier ?? null, xpMultiplier: x.xpMultiplier ?? null,
       registryItems: x.registryItems ?? null, registeredAccounts: x.registeredAccounts ?? null,
       worldHub: x.worldHub ?? null,
+      serverId: pub.id ?? ID, worlds: x.worlds ?? null,
       richest: x.richest ?? [], players: x.players ?? [],
       achievements: x.achievements ?? [], achievementTotal: x.achievementTotal,
     });
