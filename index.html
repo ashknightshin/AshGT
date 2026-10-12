@@ -119,6 +119,11 @@ const roleKey=r=>String(r||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(
 const roleImg=r=>{r=roleName(r);const k=roleKey(r);if(!k)return"";const o=CFG.roleIcons[k]||CFG.roleIcon;
  return`<img class="ri" alt="${esc(r)}" title="${esc(r)}" src="${esc(o)}" onerror="this.style.display='none'">`};
 const ico=(f,fb,alt)=>`<img class="ic-img" src="/assets/${f}" alt="${alt}" onerror="this.replaceWith('${fb}')">`;
+// Live online list comes from the fast data (every 15 s); offline players come from the roster (every 5 min)
+const onlineSet=()=>new Set((D.players||[]).map(p=>String(p.name).toLowerCase()));
+const allPlayers=()=>{const on=(D.players||[]).map(p=>({...p,online:true})),s=onlineSet(),
+ off=(D.roster||[]).filter(r=>!s.has(String(r.name).toLowerCase())).map(r=>({...r,online:false}));return[...on,...off]};
+const playersSub=()=>{const n=(D.players||[]).length,t=allPlayers().length;return t?`${n} online · ${t} registered`:"Who is around right now."};
 const stat=(l,v,c="")=>`<div class="card stat"><small>${l}</small><b ${c}>${v}</b></div>`;
 const up=()=>{let s=Math.max(0,Math.floor(D.uptimeSeconds+(Date.now()-T0.t)/1000));return`${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m ${s%60}s`};
 const mx=v=>v==null?"—":v+"x",ls=(a,f)=>a&&a.length?a.map(f).join(""):'<p class="sub" style="margin:12px 0 0">Not available yet.</p>';
@@ -143,7 +148,7 @@ function render(){const qv=($("#q")||{}).value||"",c=C(),title=D.name||"GTPS";
  ${D.system?sys(D.system):""}${worldsHtml()}
  <h2 style="margin-top:44px">Leaderboard</h2><p class="sub">Ranking of the most influential players.</p>
  <div class="card"><span class="lbl">Top 3 richest players</span>${ls((D.richest||[]).slice(0,3),(p,i)=>`<div class="row"><span><b class="gold">#${i+1}</b>&nbsp;&nbsp;<b>${esc(p.name)}</b></span><span class="green">${esc(lock(p))}</span></div>`)}</div>`;
- $("#players").innerHTML=`<h2>Players</h2><p class="sub">Who is around right now.</p><div class="card">${ls(D.players,p=>`<div class="row"><span style="flex:1">${roleImg(p.role)}<b>${esc(p.name)}</b></span><span class="role">${roleName(p.role)?esc(roleName(p.role)):""}</span><span>Lv ${esc(p.level)}</span><span class="${p.online?"green":""}">${stImg(!!p.online)}${p.online?"ONLINE":"OFFLINE"}</span></div>`)}</div>`;
+ $("#players").innerHTML=`<h2>Players</h2><p class="sub">${playersSub()}</p><div class="card">${ls(allPlayers(),p=>`<div class="row"><span style="flex:1">${roleImg(p.role)}<b>${esc(p.name)}</b></span><span class="role">${roleName(p.role)?esc(roleName(p.role)):""}</span><span>Lv ${esc(p.level)}</span><span class="${p.online?"green":""}">${stImg(!!p.online)}${p.online?"ONLINE":"OFFLINE"}</span></div>`)}</div>`;
  $("#achievements").innerHTML=`<h2>Hall of Fame</h2><p class="sub">Tracking player accomplishments and milestones.</p><input type="search" id="q" placeholder="Search champion name...">
  <div class="card" id="ach"></div>`;
  $("#q").value=qv;$("#q").oninput=ach;ach();
@@ -159,7 +164,7 @@ function render(){const qv=($("#q")||{}).value||"",c=C(),title=D.name||"GTPS";
  ${card("🍏","macOS","Follow the official setup guide",L(c.guide,"w","Setup guide"))}</div>`;
  $("#src").textContent=!live?"Cannot reach the server API. Retrying every "+CFG.refreshMs/1000+" seconds...":D.running==null?"":!D.exOk?"Live status is coming from gtps.cloud. Extra stats (event, multipliers, leaderboard) are not available right now.":D.partial?"Waiting for the server script (web_stats.lua) to send the remaining stats.":"";
  route()}
-function ach(){const q=($("#q")?.value||"").toLowerCase(),tot=D.achievementTotal||CFG.achTotal;$("#ach").innerHTML=[...(D.achievements||[])].sort((a,b)=>b.unlocked-a.unlocked).filter(p=>String(p.name).toLowerCase().includes(q)).map((p,i)=>{const pc=pct(p.unlocked,tot);return`<div class="row"><b class="gold">#${i+1}</b><b style="flex:1">${esc(p.name)}</b><span class="${p.online?"green":""}">${stImg(!!p.online)}${p.online?"ONLINE":"OFFLINE"}</span><div style="flex:1.4;min-width:160px"><small>${esc(p.unlocked)} / ${tot} unlocked</small><span style="float:right">${pc}%</span><div class="bar"><i style="width:${pc}%"></i></div></div></div>`}).join("")||'<p class="sub">No champions found.</p>'}
+function ach(){const s=onlineSet(),q=($("#q")?.value||"").toLowerCase(),tot=D.achievementTotal||CFG.achTotal;$("#ach").innerHTML=[...(D.achievements||[])].sort((a,b)=>b.unlocked-a.unlocked).filter(p=>String(p.name).toLowerCase().includes(q)).map((p,i)=>{const pc=pct(p.unlocked,tot),on=s.has(String(p.name).toLowerCase());return`<div class="row"><b class="gold">#${i+1}</b><b style="flex:1">${esc(p.name)}</b><span class="${on?"green":""}">${stImg(on)}${on?"ONLINE":"OFFLINE"}</span><div style="flex:1.4;min-width:160px"><small>${esc(p.unlocked)} / ${tot} unlocked</small><span style="float:right">${pc}%</span><div class="bar"><i style="width:${pc}%"></i></div></div></div>`}).join("")||'<p class="sub">No champions found.</p>'}
 function route(){const p=(location.hash||"#home").slice(1),ok=PAGES.some(x=>x[0]===p)?p:"home";document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===ok));document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.p===ok))}
 addEventListener("hashchange",route);
 document.addEventListener("click",e=>{const b=e.target.closest("[data-copy]");if(b){(navigator.clipboard?navigator.clipboard.writeText(b.dataset.copy):Promise.reject()).catch(()=>{});const o=b.textContent;b.textContent="✓ Copied";setTimeout(()=>b.textContent=o,1200)}});
