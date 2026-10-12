@@ -70,7 +70,19 @@ module.exports = async (req, res) => {
     // Debug: /api/status?debug=1 shows the raw answers of the three gtps.cloud endpoints
     if (req.query && req.query.debug) {
       res.setHeader("Cache-Control", "no-store");
-      return res.status(200).json({ id: ID, port, pub, gStatus, gWorlds });
+      const upd = snap && snap.updatedAt;
+      return res.status(200).json({
+        id: ID,
+        port,
+        redis: {
+          configured: !!(RURL && RTOK), // false = Vercel env vars missing (or no redeploy after adding them)
+          keyFound: !!upd,              // false = web_stats.lua never wrote data (or wrong server id/token)
+          ageSeconds: upd ? Math.floor(Date.now() / 1000) - upd : null, // must be under 300
+        },
+        pub,
+        gStatus,
+        gWorlds,
+      });
     }
 
     const now = Math.floor(Date.now() / 1000);
